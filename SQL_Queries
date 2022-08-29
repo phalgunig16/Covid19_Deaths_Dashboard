@@ -1,0 +1,157 @@
+SELECT * FROM DEATHS
+WHERE continent is not null
+ORDER BY 3,4;
+
+
+
+-- Select data
+
+SELECT location, date, total_cases, new_cases, total_deaths, population
+FROM DEATHS
+ORDER BY 1,2;
+
+-- TOtal cases vs total deaths
+SELECT location, date, total_cases, total_deaths, (total_deaths/total_cases)*100 as death_percentage
+FROM DEATHS
+WHERE location='India'
+ORDER BY 1,2;
+
+
+-- Total cases vs Population
+SELECT location, date, total_cases, population, (total_cases/population)*100 as infected_percentage
+FROM DEATHS
+--WHERE location='India'
+ORDER BY 1,2;
+
+-- Country with highest infection percentage
+
+SELECT location,population, MAX(total_cases) as Max_infected_count, MAX((total_cases/population))*100 as pop_infected_percentage
+FROM DEATHS
+GROUP BY location, population 
+ORDER BY pop_infected_percentage desc;
+
+-- Highes death count
+
+SELECT location, MAX(total_deaths) as TotalDeathCount
+from deaths
+WHERE continent is not null
+group by location
+order by TotalDeathCount desc;
+
+-- by continent/location
+SELECT location, MAX(total_deaths) as TotalDeathCount
+from deaths
+WHERE continent is not null
+group by location
+order by TotalDeathCount desc;
+
+-- Global Numbers By date
+SELECT date, SUM(new_cases) as sum_cases, SUM(new_deaths) as sum_deaths
+from deaths
+where continent is not null
+group by date
+-- group by location;
+--NOT NULL FOR ACCURATE NUMBERS
+
+
+-- JOIN both tables
+SELECT * 
+FROM DEATHS
+JOIN VAX
+	ON DEATHS.location = VAX.location
+	and DEATHS.date = VAX.date;
+	
+-- Total vax by date
+SELECT deaths.continent, deaths.location, deaths.date, VAX.new_vaccinations
+from DEATHS
+JOIN VAX
+	ON DEATHS.location = VAX.location
+	and DEATHS.date = VAX.date
+where deaths.continent is not null -- and deaths.location='India'
+order by 1,2,3;
+
+-- SUM of total vax in country
+SELECT deaths.location, SUM(VAX.new_vaccinations) as total_vax
+from DEATHS
+JOIN VAX
+	ON DEATHS.location = VAX.location
+	and DEATHS.date = VAX.date
+where deaths.continent is not null -- and deaths.location='India'
+group by deaths.location
+order by 1,2;
+
+-- SUM of total VAX by continent
+SELECT deaths.continent, SUM(VAX.new_vaccinations) as tot_vax, MAX(deaths.population) as tot_population, (SUM(VAX.new_vaccinations)/MAX(deaths.population))*100 as percent_vaxxed
+FROM DEATHS
+JOIN VAX
+	ON DEATHS.location = VAX.location
+	and DEATHS.date = VAX.date
+where deaths.continent is not null -- and deaths.location='India'
+group by deaths.continent
+order by 1,2;
+
+--- CREATING VIEW FOR TABLEAU
+
+CREATE VIEW total_vax_country as 
+SELECT deaths.location, SUM(VAX.new_vaccinations) as total_vax
+from DEATHS
+JOIN VAX
+	ON DEATHS.location = VAX.location
+	and DEATHS.date = VAX.date
+where deaths.continent is not null -- and deaths.location='India'
+group by deaths.location
+order by 1,2;
+
+-- ROLLING VAX SUMN
+SELECT deaths.continent, deaths.location, deaths.date, deaths.population , vax.new_vaccinations,
+SUM(vax.new_vaccinations) OVER (PARTITION by deaths.location order by deaths.location, deaths.date) as cummulative_vax
+from DEATHS 
+JOIN VAX
+	ON DEATHS.location = VAX.location
+	and DEATHS.date = VAX.date
+where deaths.continent is not null -- and deaths.location='India'
+order by 2,3;
+
+
+-- CRETAING CUMM_VAXX view
+CREATE VIEW cummulative_vaxx as
+SELECT deaths.continent, deaths.location, deaths.date, deaths.population , vax.new_vaccinations,
+SUM(vax.new_vaccinations) OVER (PARTITION by deaths.location order by deaths.location, deaths.date) as cummulative_vax
+from DEATHS 
+JOIN VAX
+	ON DEATHS.location = VAX.location
+	and DEATHS.date = VAX.date
+where deaths.continent is not null -- and deaths.location='India'
+order by 2,3;
+
+
+-- 7.
+Select Location, Population,date, MAX(total_cases) as HighestInfectionCount,  Max((total_cases/population))*100 as PercentPopulationInfected
+From deaths
+--Where location like '%states%'
+Group by Location, Population, date
+order by PercentPopulationInfected desc
+
+
+-- Deaths vs dates
+
+SELECT location, continent, date, new_deaths, 
+SUM(new_deaths) OVER (PARTITION BY location order by location, date) as cumm_deaths
+FROM DEATHS;
+
+-- Cases vs dates
+
+SELECT location, continent, date, new_cases, 
+SUM(new_cases) OVER (PARTITION BY location order by location, date) as cumm_cases
+FROM DEATHS;
+
+-------
+
+SELECT deaths.continent, deaths.location, deaths.date, deaths.population , vax.new_vaccinations,
+SUM(vax.new_vaccinations) OVER (PARTITION by deaths.location order by deaths.location, deaths.date) as cummulative_vax
+from DEATHS 
+JOIN VAX
+	ON DEATHS.location = VAX.location
+	and DEATHS.date = VAX.date
+where deaths.continent is not null -- and deaths.location='India'
+order by 2,3;
